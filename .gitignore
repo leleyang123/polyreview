@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+*.log
+.polyreview/memory.db-journal
+.DS_Store
+coverage/
+.vite/
