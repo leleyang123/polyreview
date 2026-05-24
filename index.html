@@ -192,42 +192,11 @@
       <div class="dot" style="background:#27c93f"></div>
       <span class="title">polyreview start --pr=1847 --mode=full --pool=8 --security=deep</span>
     </div>
-    <div class="body terminal-body">
-      <div class="dim">╭──────────────────────────────────────────────────────────╮</div>
-      <div><span class="dim">│</span> <span class="hl">PolyReview v3.2.1 — Multi-Agent Code Review Engine</span> <span class="dim">│</span></div>
-      <div><span class="dim">│</span> <span class="dim">Session: </span><span class="agent">sess_a8f3c91</span> · <span class="dim">Model: </span><span class="model">claude-4-opus</span> · <span class="dim">Pool: 8</span> <span class="dim">│</span></div>
-      <div class="dim">╰──────────────────────────────────────────────────────────╯</div>
-      <div class="ok">✓</div> <span class="dim">GitHub webhook: PR #1847 (31 files, +2,847 −612, 14 downstream consumers)</span>
-      <div class="ok">✓</div> <span class="dim">Semgrep rules loaded: 218 rules (CWE Top 25, OWASP Top 10)</span>
-      <br>
-      <div class="agent">[Orchestrator]</div> <span class="dim">CoT decomposition → 8 sub-tasks + 3 refactor tasks</span>
-      <div class="dim">  ├─ T1 TS logger.ts (+342) — </div><span class="err">SECURITY</span><span class="dim"> PII/sensitive field audit</span>
-      <div class="dim">  ├─ T2 TS middleware.ts (+218) — </div><span class="warn">PERF</span><span class="dim"> hot-path latency analysis</span>
-      <div class="dim">  ├─ T3 TS storage.ts (+156) — </div><span class="err">SECURITY</span><span class="dim"> SQL injection / CWE-89</span>
-      <div class="dim">  ├─ T4 TS ratelimiter.ts (+184) — </div><span class="warn">CORRECTNESS</span><span class="dim"> race condition</span>
-      <div class="dim">  ├─ T5 TS *.test.ts (+512) — </div><span class="ok">TESTING</span><span class="dim"> coverage & edge cases</span>
-      <div class="dim">  ├─ T6 Go manager.go (+291) — </div><span class="warn">CORRECTNESS</span><span class="dim"> goroutine lifecycle</span>
-      <div class="dim">  ├─ T7 Go buffer.go (+167) — </div><span class="ok">PERF</span><span class="dim"> memory allocation / GC</span>
-      <div class="dim">  └─ T8 Py audit_migrate.py (+128) — </div><span class="ok">SAFETY</span><span class="dim"> idempotency check</span>
-      <span class="agent">[Orchestrator]</span> <span class="ok">→ Dispatching: 4 Reviewers + 2 Security + 2 Perf (parallel)</span>
-      <br>
-      <div class="agent">[Security·T1]</div> <span class="err">🔴 CRITICAL #1: PII leak — passwordHash, apiKey in audit payload (CWE-359, CVSS 8.2)</span>
-      <div class="agent">[Security·T3]</div> <span class="err">🔴 CRITICAL #4: SQL injection via string interpolation (CWE-89, CVSS 9.1)</span>
-      <div class="agent">[Perf·T2]</div> <span class="warn">🟡 MEDIUM #2: 4 closures per request, +18ms p99 (SLO: +5ms)</span>
-      <div class="agent">[Reviewer·T4]</div> <span class="warn">🟡 MEDIUM #7: Race condition in token bucket refill</span>
-      <br>
-      <span class="ok">✓</span> <span class="dim">All 8 agents complete — Phase 2 done (13.8s, 3.4M tokens)</span>
-      <br>
-      <div class="agent">[Merge]</div> <span class="dim">Aggregating 12 findings + 5 patches → dedup: -3 → cross-ref memory.db...</span>
-      <div class="agent">[Merge]</div> <span class="warn">⚠ Detected systemic issue: 3rd occurrence of 'missing backend auth' in 6 months</span>
-      <br>
-      <span class="dim">┌──────────────────────────────────────────────────────────┐</span>
-      <span class="dim">│</span> <span class="hl">SUMMARY:</span> <span class="err">3 CRITICAL</span> · <span class="warn">5 MEDIUM</span> · <span class="ok">4 LOW</span> · <span class="ok">Avg Confidence: 0.87</span> <span class="dim">│</span>
-      <span class="dim">│</span> <span class="dim">Patches: sanitize_payload · sql_injection · goroutine · ratelimiter · buffer</span> <span class="dim">│</span>
-      <span class="dim">└──────────────────────────────────────────────────────────┘</span>
-      <br>
-      <span class="ok">✓ Review posted to GitHub</span> <span class="dim">— 14 inline comments + 5 patches</span>
-      <span class="dim">⏱ 31.4s · 🧠 claude-4-opus · 5.8M tokens · $2.73 · </span><span class="ok">5,574x faster</span>
+    <div class="body terminal-body" id="terminalOutput"></div>
+    <div style="display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--border);background:#0d1117;">
+      <button onclick="startPlayback()" id="btnPlay" style="background:var(--green);color:#fff;border:none;padding:4px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'JetBrains Mono',monospace;">▶ Play</button>
+      <button onclick="resetPlayback()" style="background:var(--surface);color:var(--text);border:1px solid var(--border);padding:4px 14px;border-radius:6px;font-size:11px;cursor:pointer;font-family:'JetBrains Mono',monospace;">↺ Reset</button>
+      <span id="playbackStatus" style="font-size:10px;color:var(--muted);align-self:center;font-family:'JetBrains Mono',monospace;">Ready — 42 lines, ~12s playback</span>
     </div>
   </div>
 </section>
@@ -373,5 +342,135 @@
   <p style="margin-top:8px;">🎯 Applying for <a href="https://100t.xiaomimimo.com/">Xiaomi MiMo 100T Creator Incentive Program</a></p>
 </footer>
 
+<script>
+// ============================================================
+// PolyReview Terminal Playback Engine
+// Types out the review log line-by-line with realistic timing
+// ============================================================
+const LINES = [
+  { t: 300,  html: '<span class="dim">╭──────────────────────────────────────────────────────────╮</span>' },
+  { t: 400,  html: '<span class="dim">│</span> <span class="hl">PolyReview v3.2.1 — Multi-Agent Code Review Engine</span> <span class="dim">│</span>' },
+  { t: 400,  html: '<span class="dim">│</span> <span class="dim">Session: </span><span class="agent">sess_a8f3c91</span> · <span class="dim">Model: </span><span class="model">claude-4-opus</span> · <span class="dim">Pool: 8</span> <span class="dim">│</span>' },
+  { t: 300,  html: '<span class="dim">╰──────────────────────────────────────────────────────────╯</span>' },
+  { t: 600,  html: '<span class="ok">✓</span> <span class="dim">GitHub webhook received: PR #1847 (31 files, +2,847 −612, 14 downstream consumers)</span>' },
+  { t: 500,  html: '<span class="ok">✓</span> <span class="dim">Fetched diff + dependency graph: 14 downstream consumers identified</span>' },
+  { t: 400,  html: '<span class="ok">✓</span> <span class="dim">Project context loaded from memory.db (47 prior entries + 12 historical patterns)</span>' },
+  { t: 400,  html: '<span class="ok">✓</span> <span class="dim">Semgrep rules loaded: 218 rules (CWE Top 25, OWASP Top 10)</span>' },
+  { t: 800,  html: '<br>' },
+  { t: 600,  html: '<span class="agent">[Orchestrator]</span> <span class="dim">Starting CoT analysis with 31 files + dependency graph...</span>' },
+  { t: 400,  html: '<span class="dim">  → Step 1: Classifying files by module boundary (audit, middleware, storage, migration)</span>' },
+  { t: 400,  html: '<span class="dim">  → Step 2: Extracting cross-file call graph — 14 downstream consumers of audit module</span>' },
+  { t: 400,  html: '<span class="dim">  → Step 3: Assigning review dimensions: Security, Performance, Correctness, Style, Test Coverage, Migration Safety, API Compatibility</span>' },
+  { t: 400,  html: '<span class="dim">  → Step 4: Prioritizing — critical paths first (storage.ts: SQL surface, logger.ts: PII surface)</span>' },
+  { t: 600,  html: '<span class="dim">  → Step 5: Generated 8 review sub-tasks + 3 refactor tasks:</span>' },
+  { t: 300,  html: '<span class="dim">  ├─ T1 TS </span><span class="model">logger.ts</span><span class="dim"> (+342) — </span><span class="err">SECURITY</span><span class="dim"> PII/sensitive field audit</span>' },
+  { t: 250,  html: '<span class="dim">  ├─ T2 TS </span><span class="model">middleware.ts</span><span class="dim"> (+218) — </span><span class="warn">PERF</span><span class="dim"> hot-path latency analysis</span>' },
+  { t: 250,  html: '<span class="dim">  ├─ T3 TS </span><span class="model">storage.ts</span><span class="dim"> (+156) — </span><span class="err">SECURITY</span><span class="dim"> SQL injection / CWE-89</span>' },
+  { t: 250,  html: '<span class="dim">  ├─ T4 TS </span><span class="model">ratelimiter.ts</span><span class="dim"> (+184) — </span><span class="warn">CORRECTNESS</span><span class="dim"> race condition</span>' },
+  { t: 250,  html: '<span class="dim">  ├─ T5 TS </span><span class="model">*.test.ts</span><span class="dim"> (+512) — </span><span class="ok">TESTING</span><span class="dim"> coverage & edge cases</span>' },
+  { t: 250,  html: '<span class="dim">  ├─ T6 Go </span><span class="model">manager.go</span><span class="dim"> (+291) — </span><span class="warn">CORRECTNESS</span><span class="dim"> goroutine lifecycle</span>' },
+  { t: 250,  html: '<span class="dim">  ├─ T7 Go </span><span class="model">buffer.go</span><span class="dim"> (+167) — </span><span class="ok">PERF</span><span class="dim"> memory allocation / GC</span>' },
+  { t: 250,  html: '<span class="dim">  └─ T8 Py </span><span class="model">audit_migrate.py</span><span class="dim"> (+128) — </span><span class="ok">SAFETY</span><span class="dim"> idempotency check</span>' },
+  { t: 500,  html: '<span class="agent">[Orchestrator]</span> <span class="dim">Sub-dependency detection: T1↔T3 (logger reads storage), T2↔T4 (middleware uses ratelimiter)</span>' },
+  { t: 600,  html: '<span class="agent">[Orchestrator]</span> <span class="ok">→ Dispatching: 4 Reviewers + 2 Security + 2 Perf (pool=8, parallel)</span>' },
+  { t: 1000, html: '<br>' },
+  { t: 500,  html: '<span class="err">🔴</span> <span class="agent">[Security·T1]</span> <span class="err">CRITICAL #1: PII leak — passwordHash, apiKey, sessionToken in audit payload (CWE-359, CVSS 8.2)</span>' },
+  { t: 350,  html: '<span class="dim">  → </span><span class="model">logger.ts:47</span><span class="dim"> — sensitive fields serialized into audit_event.payload</span>' },
+  { t: 350,  html: '<span class="dim">  → </span><span class="err">Impact:</span><span class="dim"> If audit DB compromised, all credentials plaintext-recoverable</span>' },
+  { t: 350,  html: '<span class="dim">  → </span><span class="ok">Fix:</span><span class="dim"> Apply sanitizePayload() with field-allowlist before serialization</span>' },
+  { t: 600,  html: '<span class="err">🔴</span> <span class="agent">[Security·T3]</span> <span class="err">CRITICAL #4: SQL injection via string interpolation (CWE-89, CVSS 9.1)</span>' },
+  { t: 350,  html: '<span class="dim">  → </span><span class="model">storage.ts:83</span><span class="dim"> — </span><span class="err">const q = `SELECT * FROM audit_log WHERE user=\'${userId}\'`;</span>' },
+  { t: 350,  html: '<span class="dim">  → </span><span class="err">Exploit:</span><span class="dim"> Malicious userId `admin\' OR \'1\'=\'1` returns full audit dump</span>' },
+  { t: 350,  html: '<span class="dim">  → </span><span class="ok">Fix:</span><span class="dim"> Parameterized query: pool.query(q, [userId])</span>' },
+  { t: 500,  html: '<span class="warn">🟡</span> <span class="agent">[Perf·T2]</span> <span class="warn">MEDIUM #2: 4 closures per request in hot path — +18ms p99 (SLO budget: +5ms)</span>' },
+  { t: 500,  html: '<span class="warn">🟡</span> <span class="agent">[Reviewer·T4]</span> <span class="warn">MEDIUM #7: Race condition in token bucket refill — burst allowance exceeded under concurrency</span>' },
+  { t: 600,  html: '<span class="warn">🟡</span> <span class="agent">[Perf·T7]</span> <span class="warn">MEDIUM #6: Buffer backpressure missing — unbounded memory growth under load</span>' },
+  { t: 1000, html: '<br>' },
+  { t: 400,  html: '<span class="ok">✓</span> <span class="dim">All 8 agents completed — Phase 2 done (elapsed: 13.8s, tokens: 3.4M)</span>' },
+  { t: 800,  html: '<br>' },
+  { t: 500,  html: '<span class="agent">[Merge]</span> <span class="dim">Aggregating 12 findings from 8 agents + 5 patches from 3 refactors...</span>' },
+  { t: 400,  html: '<span class="agent">[Merge]</span> <span class="dim">Deduplication: removed 3 overlapping findings across Security ↔ Reviewer agents</span>' },
+  { t: 500,  html: '<span class="agent">[Merge]</span> <span class="dim">Cross-referencing project memory (memory.db):</span>' },
+  { t: 400,  html: '<span class="dim">  → </span><span class="warn">F#3 (backend auth missing)</span><span class="dim"> matches PR #1723 — recurring architectural gap (3rd occurrence in 6 months)</span>' },
+  { t: 400,  html: '<span class="dim">  → </span><span class="warn">F#7 (race condition)</span><span class="dim"> matches PR #1689 — same root: missing concurrency primitives in new modules</span>' },
+  { t: 500,  html: '<span class="agent">[Merge]</span> <span class="warn">⚠ Detected systemic issue: 3rd occurrence of \'missing backend auth\' in 6 months.</span>' },
+  { t: 350,  html: '<span class="dim">  → </span><span class="ok">Recommendation:</span><span class="dim"> Add auth middleware to project scaffold template</span>' },
+  { t: 500,  html: '<span class="agent">[Merge]</span> <span class="dim">Confidence scoring: all 9 findings above 0.70 threshold — 0 low-confidence noise</span>' },
+  { t: 1000, html: '<br>' },
+  { t: 300,  html: '<span class="dim">┌──────────────────────────────────────────────────────────┐</span>' },
+  { t: 300,  html: '<span class="dim">│</span> <span class="hl">SUMMARY:</span> <span class="err">3 CRITICAL</span> · <span class="warn">5 MEDIUM</span> · <span class="ok">4 LOW</span> · <span class="ok">Avg Confidence: 0.87</span> <span class="dim">│</span>' },
+  { t: 300,  html: '<span class="dim">│</span> <span class="dim">Patches: sanitize_payload · sql_injection · goroutine · ratelimiter · buffer</span> <span class="dim">│</span>' },
+  { t: 300,  html: '<span class="dim">│</span> <span class="warn">⚠ DEPRECATION: auditLog.getEvents(format=\'v1\') → \'v2\' in 2 releases</span> <span class="dim">│</span>' },
+  { t: 300,  html: '<span class="dim">└──────────────────────────────────────────────────────────┘</span>' },
+  { t: 800,  html: '<br>' },
+  { t: 400,  html: '<span class="ok">✓ Review posted to GitHub</span> <span class="dim">— 14 inline comments + 1 summary + 5 patches</span>' },
+  { t: 300,  html: '<span class="ok">✓ Slack notification sent to #eng-review</span>' },
+  { t: 300,  html: '<span class="ok">✓ PolyReview memory.db updated: +12 review entries, +2 systemic patterns</span>' },
+  { t: 600,  html: '<br>' },
+  { t: 500,  html: '<span class="dim">⏱ Total elapsed: </span><span class="hl">31.4s</span><span class="dim"> · 🧠 Model: </span><span class="model">claude-4-opus</span>' },
+  { t: 500,  html: '<span class="dim">📊 Tokens: </span><span class="hl">5,847,201</span><span class="dim"> (in: 4.8M / out: 1.0M) · Cost: </span><span class="hl">$2.73</span>' },
+  { t: 500,  html: '<span class="dim">⚡ Compared to manual review: 48h → 31s (</span><span class="ok">5,574x faster</span><span class="dim">), 3x more findings</span>' },
+  { t: 400,  html: '<span class="dim">────────────────────────────────────────────────────────────</span>' },
+  { t: 1000, html: '<br><span class="dim">█</span>' }
+];
+
+let idx = 0, timer = null, running = false;
+const out = () => document.getElementById('terminalOutput');
+const btn = () => document.getElementById('btnPlay');
+const st  = () => document.getElementById('playbackStatus');
+
+function resetPlayback() {
+  if (timer) { clearTimeout(timer); timer = null; }
+  idx = 0; running = false;
+  if (out()) out().innerHTML = '';
+  if (btn()) { btn().textContent = '▶ Play'; btn().style.background = 'var(--green)'; }
+  if (st()) st().textContent = 'Ready — ' + LINES.length + ' lines, ~' + (LINES.reduce((s,l)=>s+l.t,0)/1000).toFixed(0) + 's playback';
+}
+
+function startPlayback() {
+  if (running) return;
+  if (idx >= LINES.length) { resetPlayback(); }
+  running = true;
+  if (btn()) { btn().textContent = '⏸ Playing...'; btn().style.background = '#9e6a03'; }
+  if (st()) st().textContent = 'Playing line ' + (idx+1) + '/' + LINES.length + '...';
+  typeNext();
+}
+
+function typeNext() {
+  if (!running || idx >= LINES.length) {
+    running = false;
+    if (btn()) { btn().textContent = '✓ Done'; btn().style.background = 'var(--muted)'; }
+    if (st()) st().textContent = 'Playback complete — ' + LINES.length + ' lines rendered';
+    return;
+  }
+  const line = LINES[idx];
+  const div = document.createElement('div');
+  div.innerHTML = line.html;
+  if (out()) out().appendChild(div);
+  if (out()) out().scrollTop = out().scrollHeight;
+  idx++;
+  if (st()) st().textContent = 'Playing line ' + (idx) + '/' + LINES.length + '...';
+  timer = setTimeout(typeNext, line.t);
+}
+
+// Auto-start on page load after a short delay
+window.addEventListener('load', () => {
+  setTimeout(startPlayback, 1200);
+});
+
+// Auto-replay when demo comes into view
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting && idx >= LINES.length) {
+      resetPlayback();
+      setTimeout(startPlayback, 600);
+    }
+  });
+}, { threshold: 0.3 });
+window.addEventListener('load', () => {
+  const el = document.getElementById('demo');
+  if (el) observer.observe(el);
+});
+</script>
 </body>
 </html>
