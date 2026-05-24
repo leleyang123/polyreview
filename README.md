@@ -149,7 +149,7 @@ MIMO_BASE_URL=https://api.xiaomimimo.com/v1
 
 ## 🖥️ 在线演示
 
-- **🔗 Live Demo：** [https://demo.polyreview.dev](https://demo.polyreview.dev)（提交一个示例 PR，查看实时审查流程）
+- **🔗 Live Demo：** [https://leleyang123.github.io/polyreview/](https://leleyang123.github.io/polyreview/) — 完整演示页面，含实时终端回放、架构流程图、实测数据表
 - **📹 工作流录屏：** `polyreview-workflow.mp4`（3 分钟，展示从 PR 触发到报告生成的完整流程）
 
 ---
