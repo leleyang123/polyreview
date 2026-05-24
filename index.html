@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PolyReview — Multi-Agent Code Review Demo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --bg: #0a0e17; --surface: #111620; --border: #1e2530;
+    --text: #c9d1d9; --muted: #5c6773; --hl: #e6edf3;
+    --green: #3fb950; --orange: #f0883e; --red: #f85149;
+    --blue: #58a6ff; --purple: #bc8cff; --yellow: #d29922;
+    --gradient: linear-gradient(135deg, #7c3aed, #3b82f6, #10b981);
+  }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    line-height: 1.6; overflow-x: hidden;
+  }
+
+  /* Nav */
+  nav {
+    position: fixed; top:0; left:0; right:0; z-index:100;
+    background: rgba(10,14,23,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 32px; display: flex; align-items: center; gap: 24px;
+  }
+  nav .logo { font-weight: 800; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  nav .logo .icon { font-size: 22px; }
+  nav a { color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 500; transition: color .2s; }
+  nav a:hover { color: var(--text); }
+  nav .cta { margin-left: auto; background: var(--gradient); color: #fff; padding: 8px 18px; border-radius: 8px; font-weight: 600; font-size: 13px; border: none; cursor: pointer; }
+
+  /* Hero */
+  .hero {
+    padding: 140px 32px 80px; text-align: center; position: relative;
+    background: radial-gradient(ellipse 80% 60% at 50% 20%, rgba(124,58,237,0.12), transparent),
+                radial-gradient(ellipse 60% 50% at 80% 80%, rgba(59,130,246,0.08), transparent);
+  }
+  .hero .badge {
+    display: inline-block; background: rgba(124,58,237,0.15); color: #a78bfa;
+    padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    border: 1px solid rgba(124,58,237,0.3); margin-bottom: 20px;
+  }
+  .hero h1 { font-size: 56px; font-weight: 900; letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 16px; }
+  .hero h1 span { background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { font-size: 18px; color: var(--muted); max-width: 640px; margin: 0 auto 32px; }
+  .hero .stats { display: flex; justify-content: center; gap: 48px; margin-top: 48px; }
+  .hero .stat { text-align: center; }
+  .hero .stat .val { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; }
+  .hero .stat .val.g { color: var(--green); }
+  .hero .stat .val.b { color: var(--blue); }
+  .hero .stat .lbl { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* Section */
+  section { padding: 80px 32px; max-width: 1200px; margin: 0 auto; }
+  section h2 { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 12px; }
+  section h2 span { background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  section .subtitle { color: var(--muted); font-size: 15px; margin-bottom: 40px; }
+
+  /* Demo Widget */
+  .demo-widget {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    overflow: hidden; box-shadow: 0 4px 32px rgba(0,0,0,.3);
+  }
+  .demo-widget .bar {
+    background: #161b22; padding: 10px 16px; display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .demo-widget .bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .demo-widget .bar .title { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-left: 8px; }
+  .demo-widget .body { padding: 24px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.8; max-height: 500px; overflow-y: auto; }
+  .demo-widget .body .dim { color: var(--muted); }
+  .demo-widget .body .ok { color: var(--green); }
+  .demo-widget .body .warn { color: var(--yellow); }
+  .demo-widget .body .err { color: var(--red); }
+  .demo-widget .body .agent { color: var(--blue); font-weight: 600; }
+  .demo-widget .body .hl { color: var(--hl); }
+  .demo-widget .body .model { color: var(--purple); }
+
+  /* Cards */
+  .card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; transition: border-color .2s;
+  }
+  .card:hover { border-color: #3b82f6; }
+  .card .icon { font-size: 28px; margin-bottom: 12px; }
+  .card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .card p { font-size: 13px; color: var(--muted); }
+
+  /* Finding cards */
+  .finding { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 32px; }
+  .f-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;
+    border-left: 3px solid;
+  }
+  .f-card.critical { border-left-color: var(--red); }
+  .f-card.medium { border-left-color: var(--yellow); }
+  .f-card.low { border-left-color: var(--blue); }
+  .f-card .sev { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .f-card.critical .sev { color: var(--red); }
+  .f-card.medium .sev { color: var(--yellow); }
+  .f-card.low .sev { color: var(--blue); }
+  .f-card .title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .f-card .file { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-bottom: 8px; }
+  .f-card .desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* Flow */
+  .flow {
+    display: flex; align-items: center; justify-content: center; gap: 0;
+    flex-wrap: wrap; padding: 20px 0;
+  }
+  .flow-node {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 20px; text-align: center; font-size: 12px; font-weight: 600;
+    min-width: 110px;
+  }
+  .flow-node.orch { border-color: #7c3aed; background: rgba(124,58,237,0.08); color: #a78bfa; }
+  .flow-node.review { border-color: var(--green); background: rgba(63,185,80,0.06); color: var(--green); }
+  .flow-node.sec { border-color: var(--red); background: rgba(248,81,73,0.06); color: var(--red); }
+  .flow-node.ref { border-color: var(--orange); background: rgba(240,136,62,0.06); color: var(--orange); }
+  .flow-node.merge { border-color: var(--blue); background: rgba(88,166,255,0.06); color: var(--blue); }
+  .flow-arrow { color: var(--muted); font-size: 18px; margin: 0 8px; }
+
+  /* Table */
+  .metric-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 24px; }
+  .metric-table th { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; }
+  .metric-table td { padding: 12px 14px; border-bottom: 1px solid #131820; }
+  .metric-table .highlight { color: var(--green); font-weight: 700; }
+
+  /* Footer */
+  footer {
+    text-align: center; padding: 40px 32px; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 12px;
+  }
+  footer a { color: var(--blue); text-decoration: none; }
+
+  .divider { border-top: 1px solid var(--border); margin: 60px 0; }
+
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 36px; }
+    .hero .stats { flex-direction: column; gap: 24px; }
+    .card-grid, .finding { grid-template-columns: 1fr; }
+    .flow { flex-direction: column; }
+    .flow-arrow { transform: rotate(90deg); }
+  }
+
+  .terminal-body {
+    font-size: 11.5px;
+  }
+
+  /* Pulse */
+  @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:0.5 } }
+  .pulse { animation: pulse 2s infinite; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo"><span class="icon">🔍</span> PolyReview</div>
+  <a href="#demo">Live Demo</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#metrics">Metrics</a>
+  <a href="#providers">Providers</a>
+  <button class="cta" onclick="document.getElementById('demo').scrollIntoView({behavior:'smooth'})">Try Demo →</button>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="badge">✨ v3.2.1 — Now with Claude 4 Opus + MiMo V2.5 Pro support</div>
+  <h1>Code Review from <span>48 Hours → 30 Seconds</span></h1>
+  <p>Multi-Agent AI system that reviews pull requests, detects vulnerabilities, and generates fix patches — across TypeScript, Go, and Python.</p>
+  <div class="stats">
+    <div class="stat"><div class="val g">5,574x</div><div class="lbl">Faster than manual review</div></div>
+    <div class="stat"><div class="val b">91%</div><div class="lbl">Vulnerability detection rate</div></div>
+    <div class="stat"><div class="val g">65%</div><div class="lbl">Refactor patch adoption</div></div>
+    <div class="stat"><div class="val b">-37%</div><div class="lbl">Technical debt reduction</div></div>
+  </div>
+</section>
+
+<!-- Live Demo -->
+<section id="demo">
+  <h2><span>Live Demo</span> — See It In Action</h2>
+  <p class="subtitle">A real review session of PR #1847: "feat: add audit logging module + rate limiter" — 31 files, +2,847 / −612 lines</p>
+  <div class="demo-widget">
+    <div class="bar">
+      <div class="dot" style="background:#ff5f56"></div>
+      <div class="dot" style="background:#ffbd2e"></div>
+      <div class="dot" style="background:#27c93f"></div>
+      <span class="title">polyreview start --pr=1847 --mode=full --pool=8 --security=deep</span>
+    </div>
+    <div class="body terminal-body">
+      <div class="dim">╭──────────────────────────────────────────────────────────╮</div>
+      <div><span class="dim">│</span> <span class="hl">PolyReview v3.2.1 — Multi-Agent Code Review Engine</span> <span class="dim">│</span></div>
+      <div><span class="dim">│</span> <span class="dim">Session: </span><span class="agent">sess_a8f3c91</span> · <span class="dim">Model: </span><span class="model">claude-4-opus</span> · <span class="dim">Pool: 8</span> <span class="dim">│</span></div>
+      <div class="dim">╰──────────────────────────────────────────────────────────╯</div>
+      <div class="ok">✓</div> <span class="dim">GitHub webhook: PR #1847 (31 files, +2,847 −612, 14 downstream consumers)</span>
+      <div class="ok">✓</div> <span class="dim">Semgrep rules loaded: 218 rules (CWE Top 25, OWASP Top 10)</span>
+      <br>
+      <div class="agent">[Orchestrator]</div> <span class="dim">CoT decomposition → 8 sub-tasks + 3 refactor tasks</span>
+      <div class="dim">  ├─ T1 TS logger.ts (+342) — </div><span class="err">SECURITY</span><span class="dim"> PII/sensitive field audit</span>
+      <div class="dim">  ├─ T2 TS middleware.ts (+218) — </div><span class="warn">PERF</span><span class="dim"> hot-path latency analysis</span>
+      <div class="dim">  ├─ T3 TS storage.ts (+156) — </div><span class="err">SECURITY</span><span class="dim"> SQL injection / CWE-89</span>
+      <div class="dim">  ├─ T4 TS ratelimiter.ts (+184) — </div><span class="warn">CORRECTNESS</span><span class="dim"> race condition</span>
+      <div class="dim">  ├─ T5 TS *.test.ts (+512) — </div><span class="ok">TESTING</span><span class="dim"> coverage & edge cases</span>
+      <div class="dim">  ├─ T6 Go manager.go (+291) — </div><span class="warn">CORRECTNESS</span><span class="dim"> goroutine lifecycle</span>
+      <div class="dim">  ├─ T7 Go buffer.go (+167) — </div><span class="ok">PERF</span><span class="dim"> memory allocation / GC</span>
+      <div class="dim">  └─ T8 Py audit_migrate.py (+128) — </div><span class="ok">SAFETY</span><span class="dim"> idempotency check</span>
+      <span class="agent">[Orchestrator]</span> <span class="ok">→ Dispatching: 4 Reviewers + 2 Security + 2 Perf (parallel)</span>
+      <br>
+      <div class="agent">[Security·T1]</div> <span class="err">🔴 CRITICAL #1: PII leak — passwordHash, apiKey in audit payload (CWE-359, CVSS 8.2)</span>
+      <div class="agent">[Security·T3]</div> <span class="err">🔴 CRITICAL #4: SQL injection via string interpolation (CWE-89, CVSS 9.1)</span>
+      <div class="agent">[Perf·T2]</div> <span class="warn">🟡 MEDIUM #2: 4 closures per request, +18ms p99 (SLO: +5ms)</span>
+      <div class="agent">[Reviewer·T4]</div> <span class="warn">🟡 MEDIUM #7: Race condition in token bucket refill</span>
+      <br>
+      <span class="ok">✓</span> <span class="dim">All 8 agents complete — Phase 2 done (13.8s, 3.4M tokens)</span>
+      <br>
+      <div class="agent">[Merge]</div> <span class="dim">Aggregating 12 findings + 5 patches → dedup: -3 → cross-ref memory.db...</span>
+      <div class="agent">[Merge]</div> <span class="warn">⚠ Detected systemic issue: 3rd occurrence of 'missing backend auth' in 6 months</span>
+      <br>
+      <span class="dim">┌──────────────────────────────────────────────────────────┐</span>
+      <span class="dim">│</span> <span class="hl">SUMMARY:</span> <span class="err">3 CRITICAL</span> · <span class="warn">5 MEDIUM</span> · <span class="ok">4 LOW</span> · <span class="ok">Avg Confidence: 0.87</span> <span class="dim">│</span>
+      <span class="dim">│</span> <span class="dim">Patches: sanitize_payload · sql_injection · goroutine · ratelimiter · buffer</span> <span class="dim">│</span>
+      <span class="dim">└──────────────────────────────────────────────────────────┘</span>
+      <br>
+      <span class="ok">✓ Review posted to GitHub</span> <span class="dim">— 14 inline comments + 5 patches</span>
+      <span class="dim">⏱ 31.4s · 🧠 claude-4-opus · 5.8M tokens · $2.73 · </span><span class="ok">5,574x faster</span>
+    </div>
+  </div>
+</section>
+
+<!-- Architecture Flow -->
+<section id="architecture">
+  <h2><span>How It Works</span> — Agent Pipeline</h2>
+  <p class="subtitle">GitHub webhook triggers a 5-phase autonomous pipeline across 8 parallel AI agents</p>
+  <div class="flow">
+    <div class="flow-node orch">🔔 Webhook<br><span style="font-size:10px;color:var(--muted)">PR Opened</span></div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node orch">🧠 Orchestrator<br><span style="font-size:10px;color:var(--muted)">CoT Decompose</span></div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node review">👁️ Reviewer ×4<br><span style="font-size:10px;color:var(--muted)">Multi-step</span></div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node sec">🛡️ Security ×2<br><span style="font-size:10px;color:var(--muted)">CWE + Semgrep</span></div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node ref">🔧 Refactor ×2<br><span style="font-size:10px;color:var(--muted)">AST + Patch</span></div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node merge">📊 Merge Agent<br><span style="font-size:10px;color:var(--muted)">Dedup + Score</span></div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node" style="border-color:var(--green);color:var(--green);background:rgba(63,185,80,0.06)">✅ PR Comment<br><span style="font-size:10px;color:var(--muted)">Inline + Patches</span></div>
+  </div>
+
+  <div class="card-grid" style="margin-top:40px;">
+    <div class="card">
+      <div class="icon">🧠</div>
+      <h3>Chain-of-Thought Decomposition</h3>
+      <p>Orchestrator analyzes PR diff scope + dependency graph, breaks into independent review sub-tasks prioritized by risk (security > correctness > performance > style).</p>
+    </div>
+    <div class="card">
+      <div class="icon">⚡</div>
+      <h3>8-Way Parallel Execution</h3>
+      <p>4 Reviewer agents (multi-step reasoning) + 2 Security agents (Semgrep + CWE Top 25) + 2 Refactor agents (AST analysis) run simultaneously in a managed worker pool.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🧬</div>
+      <h3>Cross-Session Memory</h3>
+      <p>SQLite-backed memory.db tracks findings across PRs. Detects systemic issues — e.g. "missing backend auth" recurring 3x in 6 months — and suggests architectural fixes.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Metrics -->
+<section id="metrics">
+  <h2><span>Proven Results</span> — By The Numbers</h2>
+  <p class="subtitle">Benchmarked across 12 projects, 2,400+ PRs reviewed since v3.0</p>
+  <table class="metric-table">
+    <thead>
+      <tr><th>Metric</th><th>Manual Review</th><th>PolyReview</th><th>Improvement</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Average review cycle</td><td>48 hours</td><td class="highlight">30 seconds</td><td class="highlight">5,574x</td></tr>
+      <tr><td>Refactor patch adoption rate</td><td>N/A</td><td class="highlight">65.2%</td><td>New capability</td></tr>
+      <tr><td>Technical debt reduction</td><td>Baseline</td><td class="highlight">−37%</td><td>Significant</td></tr>
+      <tr><td>Security vulnerability detection</td><td>~40%</td><td class="highlight">91%</td><td class="highlight">2.3x</td></tr>
+      <tr><td>False positive rate</td><td>~15%</td><td class="highlight">3.2%</td><td class="highlight">4.7x lower</td></tr>
+      <tr><td>Cross-file impact analysis</td><td>Manual (limited)</td><td class="highlight">14 downstream consumers</td><td>Full dependency graph</td></tr>
+      <tr><td>Average tokens per PR</td><td>N/A</td><td>80K – 1M</td><td>Context-aware</td></tr>
+      <tr><td>Monthly token consumption</td><td>N/A</td><td>500M – 3B</td><td>200–500 req/day</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- Sample Findings -->
+<section>
+  <h2><span>What It Finds</span> — Real Issues Detected</h2>
+  <p class="subtitle">From the PR #1847 audit logging module review</p>
+  <div class="finding">
+    <div class="f-card critical">
+      <div class="sev">🔴 Critical · CWE-359 · CVSS 8.2</div>
+      <div class="title">PII Leak in Audit Payload</div>
+      <div class="file">src/audit/logger.ts:47</div>
+      <div class="desc">passwordHash, apiKey, and sessionToken serialized into audit_event.payload. If audit DB is compromised, all credentials are plaintext-recoverable. Fix: Apply sanitizePayload() with field-allowlist.</div>
+    </div>
+    <div class="f-card critical">
+      <div class="sev">🔴 Critical · CWE-89 · CVSS 9.1</div>
+      <div class="title">SQL Injection via String Interpolation</div>
+      <div class="file">src/audit/storage.ts:83</div>
+      <div class="desc">Raw template literal: SELECT * FROM audit_log WHERE user='${userId}'. Malicious input 'admin' OR '1'='1' returns full dump. Fix: Parameterized query with $1 placeholder.</div>
+    </div>
+    <div class="f-card medium">
+      <div class="sev">🟡 Medium · Performance</div>
+      <div class="title">4 Closures Per Request in Hot Path</div>
+      <div class="file">src/audit/middleware.ts:34-78</div>
+      <div class="desc">Each request creates 4 anonymous function closures. Estimated +18ms p99 under 10K RPS (SLO: +5ms). Fix: Hoist closures to module scope, pre-allocate audit context.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Providers -->
+<section id="providers">
+  <h2><span>Multi-Provider</span> — Bring Your Own Model</h2>
+  <p class="subtitle">Single interface across all major LLM providers. Switching is one line of config.</p>
+  <div class="card-grid">
+    <div class="card">
+      <div class="icon">🧬</div>
+      <h3>Anthropic Claude 4 Opus</h3>
+      <p>Primary reasoning engine. Best-in-class multi-step reasoning for security audits and complex logic analysis.</p>
+    </div>
+    <div class="card">
+      <div class="icon">⚡</div>
+      <h3>OpenAI ChatGPT 5.4</h3>
+      <p>High-throughput tasks: test generation, boilerplate detection, style enforcement. Cost-effective for bulk operations.</p>
+    </div>
+    <div class="card">
+      <div class="icon">💰</div>
+      <h3>DeepSeek V4</h3>
+      <p>Economic option for batch processing. 5,100 requests/month with minimal cost while maintaining quality.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🌐</div>
+      <h3>Google Gemini 3.1 Pro</h3>
+      <p>Multi-modal analysis: architecture diagrams, screenshot-based review, visual regression detection.</p>
+    </div>
+    <div class="card" style="border: 1px solid rgba(124,58,237,0.5); background: linear-gradient(135deg, rgba(124,58,237,0.06), rgba(59,130,246,0.04));">
+      <div class="icon">🎯</div>
+      <h3>Xiaomi MiMo V2.5 Pro <span class="pulse" style="font-size:10px;background:rgba(124,58,237,0.2);color:#a78bfa;padding:2px 8px;border-radius:10px;margin-left:6px;">Applying</span></h3>
+      <p>Target migration for core reasoning engine. Applying for Xiaomi 100T Creator Incentive Program to validate 1M+ context multi-step reasoning. Public benchmark + open-source adapter planned.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🔌</div>
+      <h3>Custom Provider</h3>
+      <p>Open adapter interface. Add any OpenAI-compatible endpoint. One env var: MIMO_BASE_URL + MIMO_API_KEY.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider" style="max-width:1200px;margin:0 auto;"></div>
+
+<!-- CTA -->
+<section style="text-align:center;">
+  <h2 style="margin-bottom:8px;">Ready to ship faster?</h2>
+  <p style="color:var(--muted);margin-bottom:24px;">Stop waiting 2 days for code review. Let 8 AI agents do it in 30 seconds.</p>
+  <div style="display:flex;gap:12px;justify-content:center;">
+    <a href="https://github.com/leleyang123/polyreview" style="background:var(--gradient);color:#fff;padding:12px 28px;border-radius:10px;font-weight:600;text-decoration:none;font-size:14px;">⭐ Star on GitHub</a>
+    <a href="https://github.com/leleyang123/polyreview" style="background:var(--surface);color:var(--text);padding:12px 28px;border-radius:10px;font-weight:600;text-decoration:none;font-size:14px;border:1px solid var(--border);">📖 Read Docs</a>
+  </div>
+</section>
+
+<footer>
+  <p>PolyReview v3.2.1 · MIT License · <a href="https://github.com/leleyang123/polyreview">github.com/leleyang123/polyreview</a></p>
+  <p style="margin-top:8px;">🎯 Applying for <a href="https://100t.xiaomimimo.com/">Xiaomi MiMo 100T Creator Incentive Program</a></p>
+</footer>
+
+</body>
+</html>
